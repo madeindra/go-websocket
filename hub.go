@@ -1,6 +1,7 @@
 package main
 
 type Hub struct {
+	rooms      map[*Room]bool
 	clients    map[*Client]bool
 	register   chan *Client
 	unregister chan *Client
@@ -9,6 +10,7 @@ type Hub struct {
 
 func newHub() *Hub {
 	return &Hub{
+		rooms:      make(map[*Room]bool),
 		clients:    make(map[*Client]bool),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
@@ -46,4 +48,24 @@ func (hub *Hub) brocastToClient(message []byte) {
 	for client := range hub.clients {
 		client.send <- message
 	}
+}
+
+func (hub *Hub) findRoomByName(name string) *Room {
+	var foundRoom *Room
+	for room := range hub.rooms {
+		if room.GetName() == name {
+			foundRoom = room
+			break
+		}
+	}
+
+	return foundRoom
+}
+
+func (hub *Hub) createRoom(name string) *Room {
+	room := NewRoom(name)
+	go room.RunRoom()
+	hub.rooms[room] = true
+
+	return room
 }
