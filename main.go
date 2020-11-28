@@ -9,14 +9,14 @@ import (
 func main() {
 	flag.Parse()
 
-	wsServer := newWsServer()
-	go wsServer.Run()
+	hub := newHub()
+	go hub.Run()
 
 	fs := http.FileServer(http.Dir("./public"))
 	http.Handle("/", fs)
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		ServeWS(wsServer, w, r)
+		ServeWS(hub, w, r)
 	})
 
 	log.Fatal(http.ListenAndServe(":8080", nil))

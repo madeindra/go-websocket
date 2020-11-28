@@ -1,14 +1,14 @@
 package main
 
-type WsServer struct {
+type Hub struct {
 	clients    map[*Client]bool
 	register   chan *Client
 	unregister chan *Client
 	broadcast  chan []byte
 }
 
-func newWsServer() *WsServer {
-	return &WsServer{
+func newHub() *Hub {
+	return &Hub{
 		clients:    make(map[*Client]bool),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
@@ -16,7 +16,7 @@ func newWsServer() *WsServer {
 	}
 }
 
-func (server *WsServer) Run() {
+func (server *Hub) Run() {
 	for {
 		select {
 
@@ -32,17 +32,17 @@ func (server *WsServer) Run() {
 	}
 }
 
-func (server *WsServer) registerClient(client *Client) {
+func (server *Hub) registerClient(client *Client) {
 	server.clients[client] = true
 }
 
-func (server *WsServer) unregisterClient(client *Client) {
+func (server *Hub) unregisterClient(client *Client) {
 	if _, ok := server.clients[client]; ok {
 		delete(server.clients, client)
 	}
 }
 
-func (server *WsServer) brocastToClient(message []byte) {
+func (server *Hub) brocastToClient(message []byte) {
 	for client := range server.clients {
 		client.send <- message
 	}

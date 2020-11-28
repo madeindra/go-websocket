@@ -26,13 +26,13 @@ var (
 )
 
 type Client struct {
-	conn     *websocket.Conn
-	wsServer *WsServer
-	send     chan []byte
+	conn *websocket.Conn
+	hub  *Hub
+	send chan []byte
 }
 
-func newClient(conn *websocket.Conn, wsServer *WsServer) *Client {
-	return &Client{conn: conn, wsServer: wsServer, send: make(chan []byte, 256)}
+func newClient(conn *websocket.Conn, hub *Hub) *Client {
+	return &Client{conn: conn, hub: hub, send: make(chan []byte, 256)}
 }
 
 func (client *Client) readPump() {
@@ -53,12 +53,12 @@ func (client *Client) readPump() {
 			break
 		}
 
-		client.wsServer.broadcast <- jsonMessage
+		client.hub.broadcast <- jsonMessage
 	}
 }
 
 func (client *Client) disconnect() {
-	client.wsServer.unregister <- client
+	client.hub.unregister <- client
 	close(client.send)
 	client.conn.Close()
 }
@@ -106,17 +106,17 @@ func (client *Client) writePump() {
 	}
 }
 
-func ServeWS(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
+func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	client := newClient(conn, wsServer)
+	client := newClient(conn, hub)
 
 	go client.writePump()
 	go client.readPump()
 
-	wsServer.register <- client
+	hub.register <- client
 }
