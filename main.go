@@ -1,23 +1,77 @@
 package main
 
 import (
-	"flag"
+	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
+	"github.com/madeindra/go-websocket/pubsub"
 )
 
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
+
+func autoId() string {
+	return uuid.Must(uuid.NewRandom()).String()
+}
+
+var ps = &pubsub.PubSub{}
+
+func websocketHandler(w http.ResponseWriter, r *http.Request) {
+
+	upgrader.CheckOrigin = func(r *http.Request) bool {
+		return true
+
+	}
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	client := pubsub.Client{
+		Id:         autoId(),
+		Connection: conn,
+	}
+
+	// add this client into the list
+	ps.AddClient(client)
+
+	fmt.Println("New Client is connected, total: ", len(ps.Clients))
+
+	for {
+		messageType, p, err := conn.ReadMessage()
+		if err != nil {
+			log.Println("Something went wrong", err)
+
+			ps.RemoveClient(client)
+			log.Println("total clients and subscriptions ", len(ps.Clients), len(ps.Subscriptions))
+
+			return
+		}
+
+		ps.HandleReceiveMessage(client, messageType, p)
+
+	}
+
+}
+
 func main() {
-	flag.Parse()
 
-	hub := newHub()
-	go hub.Run()
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 
-	fs := http.FileServer(http.Dir("./public"))
-	http.Handle("/", fs)
+		http.ServeFile(w, r, "static")
 
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		Serve(hub, w, r)
 	})
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	http.HandleFunc("/ws", websocketHandler)
+
+	http.ListenAndServe(":3000", nil)
+
+	fmt.Println("Server is running: http://localhost:3000")
+
 }
