@@ -16,34 +16,34 @@ func newHub() *Hub {
 	}
 }
 
-func (server *Hub) Run() {
+func (hub *Hub) Run() {
 	for {
 		select {
 
-		case client := <-server.register:
-			server.registerClient(client)
+		case client := <-hub.register:
+			hub.registerClient(client)
 
-		case client := <-server.unregister:
-			server.unregisterClient(client)
+		case client := <-hub.unregister:
+			hub.unregisterClient(client)
 
-		case message := <-server.broadcast:
-			server.brocastToClient(message)
+		case message := <-hub.broadcast:
+			hub.brocastToClient(message)
 		}
 	}
 }
 
-func (server *Hub) registerClient(client *Client) {
-	server.clients[client] = true
+func (hub *Hub) registerClient(client *Client) {
+	hub.clients[client] = true
 }
 
-func (server *Hub) unregisterClient(client *Client) {
-	if _, ok := server.clients[client]; ok {
-		delete(server.clients, client)
+func (hub *Hub) unregisterClient(client *Client) {
+	if _, ok := hub.clients[client]; ok {
+		delete(hub.clients, client)
 	}
 }
 
-func (server *Hub) brocastToClient(message []byte) {
-	for client := range server.clients {
+func (hub *Hub) brocastToClient(message []byte) {
+	for client := range hub.clients {
 		client.send <- message
 	}
 }

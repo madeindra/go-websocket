@@ -16,7 +16,7 @@ func main() {
 	http.Handle("/", fs)
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		ServeWS(hub, w, r)
+		Serve(hub, w, r)
 	})
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
